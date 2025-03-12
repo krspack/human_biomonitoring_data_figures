@@ -114,7 +114,7 @@ for column in df:
     print(column, df[column].isna().sum())
 
 
-# In[5]:
+# In[32]:
 
 
 # počet vzorků vč. LOD, LOQ, pohled po jednotlivých látkách: 
@@ -122,7 +122,7 @@ df_copy = df.copy()
 limits_columns = []  # pro pouziti v dalsich grafech
 
 fig, ax = plt.subplots(3, 5, figsize=(18, 8))
-fig.suptitle('Počet a typ vzorků I: přehled látek', fontsize=16, y=1.02)
+fig.suptitle('Number of samples of each detection category, ordered by substance', fontsize=16, y=1.02)
 color_palette = {'-3.0': 'yellow', '-2.0': 'orange', '-1.0': 'red', 'ok': 'lightblue'}
 for index, substance in enumerate(pah_columns):
 
@@ -130,26 +130,36 @@ for index, substance in enumerate(pah_columns):
     df_copy[f'{substance}_limity'] = df_copy[f'{substance}'].dropna(axis = 0).apply(lambda x: 'ok' if x >= 0 else str(x))
     limits_columns.append(f'{substance}_limity')
     
-    samples_count = df_copy.groupby(['country', f'{substance}_limity'], observed = False)['id_hbm4eu_subject'].size().reset_index(name='pocet_vzorku')
+    samples_count = df_copy.groupby(['country', f'{substance}_limity'], observed = False).size().reset_index(name='pocet_vzorku')
     samples_count_pivoted = samples_count.pivot(index = 'country', columns = f'{substance}_limity', values = 'pocet_vzorku')
     
     row = index // 5
     col = index % 5
-
-    samples_count_pivoted.plot(kind='bar', stacked=True, ax=ax[row, col], legend = True if [row, col] == [0, 0] else False, color=[color_palette.get(str(col), 'grey') for col in samples_count_pivoted.columns])
+       
+    samples_count_pivoted.plot(kind='bar', stacked=True, ax=ax[row, col], legend = False, color=[color_palette.get(str(col), 'grey') for col in samples_count_pivoted.columns])
     ax[row, col].set_title(get_parent(substance)+'_'+substance)
     ax[row, col].set_xticklabels(ax[row, col].get_xticklabels(), rotation=45)
+    ax[row, col].set_ylabel('Number of samples')
+    ax[row, col].set_xlabel('')
 
+    # ax[row, col].legend()
+    
+#legend
+handles, labels = ax[2, 2].get_legend_handles_labels()  
+labels_dict = {'-1.0': 'x < LOD', '-2.0': 'LOD <= x < LOQ', '-3.0': 'LOD unknown, x < LOQ' , 'ok': 'OK'}
+labels = [value for key, value in labels_dict.items()]
+print(handles)
+fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1, 1.15), ncol=1, title = 'Detection categories:', fontsize = 14, title_fontsize = 14)
 plt.tight_layout()
 plt.show()
 
 
-# In[6]:
+# In[34]:
 
 
 # totéž co výše, ale pohled po jednotlivých státech: počty vzorků po jednotlivých státech, vč. LOD a LOQ
 fig, ax = plt.subplots(2, 5, figsize=(18, 8)) 
-fig.suptitle('Počet a typ vzorků II: přehled států', fontsize=16, y=1.02)
+fig.suptitle('Number of samples of each detection category, ordered by country', fontsize=16, y=1.02)
 color_palette = {'-3.0': 'yellow', '-2.0': 'orange', '-1.0': 'red', 'ok': 'lightblue'}
 
 for index, country in enumerate(sorted(df['country'].unique())):
@@ -179,7 +189,7 @@ for index, country in enumerate(sorted(df['country'].unique())):
 
     # graf
     color=[color_palette.get(col, 'grey') for col in samples_count_pivoted.columns]
-    samples_count_pivoted.plot(kind='bar', stacked=True, ax=ax[row, col], color = color, legend = True if [row, col] == [0, 0] else False)
+    samples_count_pivoted.plot(kind='bar', stacked=True, ax=ax[row, col], color = color, legend = False)
     ax[row, col].set_title(country)
     ax[row, col].tick_params(axis='x', rotation=90)
 
@@ -190,7 +200,9 @@ for index, country in enumerate(sorted(df['country'].unique())):
         text = label.get_text().split('_')[0]  # Example extraction logic
         color = parent_colors.get(text, 'black')  # Default to black if no color specified
         label.set_color(color)
-    
+
+fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1, 1.15), ncol=1, title = 'Detection categories:', fontsize = 14, title_fontsize = 14)
+
 plt.tight_layout()
 plt.show()
 
@@ -359,7 +371,7 @@ ax.set_xticklabels(xt)
 plt.show()
 
 
-# In[39]:
+# In[15]:
 
 
 # pohlaví x země
@@ -437,7 +449,7 @@ age_country = df.groupby('country', observed = False)['ageyears'].describe()
 print(age_country)
 
 
-# In[19]:
+# In[18]:
 
 
 # Jak přesné je měření v jednotlivých státech? Přehled hodnot LOD, LOQ.
