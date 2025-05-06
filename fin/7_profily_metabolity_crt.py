@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Profily - metabolity (no CRT-standardization)
+# ## Profily - metabolity (CRT-standardized values)
 
 # In[1]:
 
@@ -36,7 +36,7 @@ def get_parent(compound):
                 return parent
     return ''
 
-imp_11_columns = [f'{p}_imp' for p in pah_columns]
+impcrt_11_columns = [f'{p}_impcrt' for p in pah_columns]
 
 
 # In[2]:
@@ -44,9 +44,9 @@ imp_11_columns = [f'{p}_imp' for p in pah_columns]
 
 # profily zemi
 
-df_medians = df.groupby(['country'], observed=False)[imp_11_columns].median()
+df_medians = df.groupby(['country'], observed=False)[impcrt_11_columns].median()
 df_medians.sort_index(axis = 'index', inplace = True)
-imp_palette = {key+"_imp": value for key, value in metabolites_colors.items()}
+impcrt_palette = {key+"_impcrt": value for key, value in metabolites_colors.items()}
 
 def plot_profiles(dataframe, title, ylabel):
     fig = plt.figure(figsize = [16, 6])
@@ -54,9 +54,9 @@ def plot_profiles(dataframe, title, ylabel):
     
     countries = sorted(dataframe.index)
     bottom_values = np.zeros(len(countries)) 
-    for i, substance in enumerate(imp_11_columns):
+    for i, substance in enumerate(impcrt_11_columns):
         values = dataframe.loc[countries, substance]       
-        ax.bar(countries, values, bottom=bottom_values, label=substance.replace('_imp', ''), color=imp_palette[substance])
+        ax.bar(countries, values, bottom=bottom_values, label=substance.replace('_impcrt', ''), color=impcrt_palette[substance])
         bottom_values += values
     
     # Set x-ticks and labels
@@ -76,7 +76,7 @@ def plot_profiles(dataframe, title, ylabel):
     return
 print(plot_profiles(df_medians,
                     'Country profiles. Median values, smokers excluded, missing observations imputed with median value. Diohnap and ninehfluo are missing. Ohbap: mostly imputed values. Smokers excluded',
-                   'Concentrations, linear scale'))
+                   'CRT-standardized, imputed values, linear scale'))
 
 
 # In[3]:
@@ -88,7 +88,7 @@ df_medians_percentage = df_medians.div(other = df_medians.sum(axis=1), axis=0, f
 # grouped_imputed_percentage.to_csv('percentage.csv', encoding = 'UTF-8', sep = ';', decimal = ',')
 print(plot_profiles(df_medians_percentage, 
                     'Country profiles - percentage of total. Missing observations imputed with median value. Diohnap and ninehfluo missing. Ohbap: mostly imputed values. Smokers excluded',
-                   'Percentage of total for each country'))
+                   'CRT-standardized, imputed values, percentage of total for each country'))
 
 
 # In[4]:
@@ -96,23 +96,23 @@ print(plot_profiles(df_medians_percentage,
 
 # Hotelliguv test
 
-# vybrat sloupce imp
+# vybrat sloupce impcrt
 df_hotelling = df.copy()
-df_hotelling = df_hotelling[['country', *imp_11_columns]]
+df_hotelling = df_hotelling[['country', *impcrt_11_columns]]
 
 # prevest hodnoty na procenta
-df_hotelling[imp_11_columns] = df_hotelling[imp_11_columns].div(other = df_hotelling[imp_11_columns].sum(axis=1), axis=0) * 100
+df_hotelling[impcrt_11_columns] = df_hotelling[impcrt_11_columns].div(other = df_hotelling[impcrt_11_columns].sum(axis=1), axis=0) * 100
 
 # vydelit vsechny hodnoty hodnotou prvniho metabolitu
-for column in imp_11_columns:
-    df_hotelling[column] = df_hotelling[column] / df_hotelling[imp_11_columns[0]]
+for column in impcrt_11_columns:
+    df_hotelling[column] = df_hotelling[column] / df_hotelling[impcrt_11_columns[0]]
     
 # zlogaritmovat vsechny hodnoty pro normalni rozdeleni
-for column in imp_11_columns:
+for column in impcrt_11_columns:
     df_hotelling[column] = np.log(df_hotelling[column])
 
 # vyhodit z dat oneohnap, kterym se delilo
-columns_without_oneohnap = imp_11_columns[1:]
+columns_without_oneohnap = impcrt_11_columns[1:]
 
 # Hotellinguv test 
 countries = sorted(list(df.country.unique()))
@@ -150,7 +150,7 @@ print(p_values_df)
 
 # profily zemi pro topnou a netopnou sezonu
 
-df_heating = df.groupby(['country', 'heating_season'], observed=False)[imp_11_columns].median()
+df_heating = df.groupby(['country', 'heating_season'], observed=False)[impcrt_11_columns].median()
 df_heating.index = df_heating.index.map(lambda x: f"{x[0]} {str(x[1])}")
 
 print('Mediánová koncentrace látky v topné vs. netopné sezóně, absolutní hodnota')
@@ -165,9 +165,9 @@ def plot_profiles(dataframe, title, ylabel):
     country_heating = sorted(dataframe.index)
     bottom_values = np.zeros(len(country_heating)) 
     
-    for i, compound in enumerate(imp_11_columns):  
+    for i, compound in enumerate(impcrt_11_columns):  
         values = dataframe.loc[country_heating, compound]
-        ax.bar(country_heating, values, bottom=bottom_values, label=compound.replace('_imp', ''), color=imp_palette[compound])
+        ax.bar(country_heating, values, bottom=bottom_values, label=compound.replace('_impcrt', ''), color=impcrt_palette[compound])
         bottom_values += values
     
     # osy, popisky, ticks
@@ -187,33 +187,33 @@ def plot_profiles(dataframe, title, ylabel):
     return
 print(plot_profiles(df_heating,
                     'Country profiles, heating and non-heating season compared. Smokers excluded',
-                   'Median concentrations, imputed, linear scale' ))
+                   'Median concentrations of imputed, CRT-starndardized values, linear scale' ))
 
 
-# In[6]:
+# In[7]:
 
 
 # Hotelliguv test pro rozliseni topne x netopne sezony u kazdeho statu
 
-# vybrat sloupce imp
+# vybrat sloupce impcrt
 df_hotelling = df.copy()
 df_hotelling = df_hotelling[~df_hotelling['country'].isin(['DE', 'HR', 'PL'])]
-df_hotelling = df_hotelling[['country', 'heating_season', *imp_11_columns]]
+df_hotelling = df_hotelling[['country', 'heating_season', *impcrt_11_columns]]
 
 # prevest hodnoty na procenta
-row_sums = df_hotelling[imp_11_columns].sum(axis=1)
-df_hotelling[imp_11_columns] = df_hotelling[imp_11_columns].div(row_sums, axis=0) * 100
+row_sums = df_hotelling[impcrt_11_columns].sum(axis=1)
+df_hotelling[impcrt_11_columns] = df_hotelling[impcrt_11_columns].div(row_sums, axis=0) * 100
 
 # vydelit vsechny hodnoty hodnotou prvniho metabolitu
-for column in imp_11_columns:
-    df_hotelling[column] = df_hotelling[column] / df_hotelling[imp_11_columns[-1]]
+for column in impcrt_11_columns:
+    df_hotelling[column] = df_hotelling[column] / df_hotelling[impcrt_11_columns[-1]]
     
 # zlogaritmovat vsechny hodnoty pro normalni rozdeleni
-for column in imp_11_columns:
+for column in impcrt_11_columns:
     df_hotelling[column] = np.log(df_hotelling[column])
 
 # vyhodit z dat posledni sloupec, kterym se delilo
-columns_without_last = imp_11_columns[:-1]
+columns_without_last = impcrt_11_columns[:-1]
 
 # Hotellinguv test
 countries = sorted(list(df_hotelling.country.unique()))
@@ -256,7 +256,7 @@ for k, v in p_values_dict.items():
     print(f'{k}: {v}')
 
 
-# In[7]:
+# In[8]:
 
 
 # Profily zemí II, procenta z lineárních hodnot
@@ -270,8 +270,8 @@ print(df_heating_percentage)
 print('')
 
 print(plot_profiles(df_heating_percentage,
-                    'Country profiles - percentage of total, heating and non-heating season compared. Imputed values, smokers excluded',
-                   'Percentage of total for each country and season' ))
+                    'Country profiles - percentage of total, heating and non-heating season compared. Smokers excluded',
+                   'Percentage, median concentrations of imputed, CRT-starndardized values' ))
 
 
 # In[ ]:

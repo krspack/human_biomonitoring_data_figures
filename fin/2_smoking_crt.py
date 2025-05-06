@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Smoking (no CRT-standardization)
+# ## Smoking (CRT-standardized values)
 
 # In[1]:
 
@@ -168,7 +168,7 @@ plt.show()
 
 
 
-# In[9]:
+# In[13]:
 
 
 # kouření (aktivní, pasivní) × koncentrace latky
@@ -183,8 +183,8 @@ for idx, substance in enumerate(pah_columns):
 
     
     # smoking + smoking passive combined in one dataframe
-    filtered_df_0 = df[['smoking', 'smoking_passive', substance+'_implog10']].copy()
-    filtered_df_0.dropna(subset = [substance+'_implog10'], inplace = True)   # vyhodit radky s prazdnymi hodnotami ve sloupci substance+'_implog10'
+    filtered_df_0 = df[['smoking', 'smoking_passive', substance+'_impcrtlog10']].copy()
+    filtered_df_0.dropna(subset = [substance+'_impcrtlog10'], inplace = True)   # vyhodit radky s prazdnymi hodnotami ve sloupci substance+'_impcrtlog10'
     filtered_df_0[['smoking', 'smoking_passive']] = filtered_df_0[['smoking', 'smoking_passive']].fillna(value = False)    # nevyplnene hodnoty ve sloupcich smoking a smoking_passive se zmeni na False     
 
     filtered_df_0['smoking_status'] = filtered_df_0.apply(lambda row: 'smoker' if row['smoking'] == True else ('passive_smoker' if row['smoking_passive'] == True else 'non-smoker'), axis = 1)
@@ -199,19 +199,19 @@ for idx, substance in enumerate(pah_columns):
         sns.boxplot(ax = axes[row, col],
                          data = filtered_df_0, 
                          x='smoking_status', 
-                         y=substance+'_implog10', 
+                         y=substance+'_impcrtlog10', 
                          color = metabolites_colors.get(substance), 
                          whis = (5, 95))
     
         # ANOVA with log-transformed values
         anova_results = stats.f_oneway(
-            filtered_df_0[filtered_df_0['smoking_status'] == 'smoker'][substance+'_implog10'],
-            filtered_df_0[filtered_df_0['smoking_status'] == 'non-smoker'][substance+'_implog10'],
-            filtered_df_0[filtered_df_0['smoking_status'] == 'passive_smoker'][substance+'_implog10']
+            filtered_df_0[filtered_df_0['smoking_status'] == 'smoker'][substance+'_impcrtlog10'],
+            filtered_df_0[filtered_df_0['smoking_status'] == 'non-smoker'][substance+'_impcrtlog10'],
+            filtered_df_0[filtered_df_0['smoking_status'] == 'passive_smoker'][substance+'_impcrtlog10']
         )
 
         # Tukey's HSD post-hoc test
-        tukey = pairwise_tukeyhsd(endog = filtered_df_0[substance+'_implog10'], groups = filtered_df_0['smoking_status'], alpha=0.05)
+        tukey = pairwise_tukeyhsd(endog = filtered_df_0[substance+'_impcrtlog10'], groups = filtered_df_0['smoking_status'], alpha=0.05)
         tukey_summary = tukey.summary()
         
         tukey_headers = tukey_summary.data[0] 
@@ -222,7 +222,7 @@ for idx, substance in enumerate(pah_columns):
         p_values = [row["p-adj"] for _, row in tukey_summary.iterrows()]
     
         # post-hoc test annonations
-        annotator = Annotator(axes[row, col], pairs = pairs, data=filtered_df_0, x="smoking_status", y=substance+'_implog10')
+        annotator = Annotator(axes[row, col], pairs = pairs, data=filtered_df_0, x="smoking_status", y=substance+'_impcrtlog10')
         annotator.configure(text_format="star", loc="outside", verbose = 2)
         annotator.set_pvalues(p_values)
         annotator.annotate()
@@ -243,13 +243,13 @@ for idx, substance in enumerate(pah_columns):
         y_labels = [round(np.power(10, tick), 2) for tick in y_ticks]  # Convert and round to 2 decimals
         axes[row, col].set_yticks(y_ticks)  # Keep positions
         axes[row, col].set_yticklabels(y_labels)  # Replace labels with linear equivalents
-        axes[row, col].set_ylabel("Imputed, log10-transformed values")
+        axes[row, col].set_ylabel("CRT-standardized, imputed, log10-transformed values")
 
 plt.show()
 
 
 
-# In[16]:
+# In[14]:
 
 
 # role promenne smoking_24h a smoking_passive24h: studie tri statu ['CH', 'HR', 'PT'], ktere maji prislusna data vyplnena
@@ -270,7 +270,7 @@ def categorize(row):
         return None
 
 fig, axes = plt.subplots(4, 4, figsize=(20, 34), sharey = False)  
-fig.suptitle('Various smoking behaviors compared to nonsmokers. Data from CH, HR and PT. Only significant post-hoc results are shown', fontsize=16, y = 0.96)
+fig.suptitle('Various smoking behaviors compared to nonsmokers. Data from CH, HR and PT. Only significant post-hoc results are shown', fontsize=16)
 fig.subplots_adjust(hspace=0.9, wspace = 0.3)
 print('')
 
@@ -280,10 +280,10 @@ for idx, substance in enumerate(pah_columns):
 
     # get dataframe with relevant columns
     filtered_df_1 = df[df['country'].isin(['CH', 'HR', 'PT'])].copy()  # countries which have data in smoking_24h and smoking_passive24h 
-    filtered_df_1 = filtered_df_1[['smoking', 'smoking_passive', 'smoking_24h', 'smoking_passive24h', substance+'_implog10']]
+    filtered_df_1 = filtered_df_1[['smoking', 'smoking_passive', 'smoking_24h', 'smoking_passive24h', substance+'_impcrtlog10']]
     filtered_df_1[['smoking', 'smoking_passive', 'smoking_24h', 'smoking_passive24h']] = filtered_df_1[['smoking', 'smoking_passive', 'smoking_24h', 'smoking_passive24h']].fillna(value = False)  
     
-    filtered_df_1.dropna(subset = [substance+'_implog10'], inplace = True)
+    filtered_df_1.dropna(subset = [substance+'_impcrtlog10'], inplace = True)
 
     filtered_df_1['groups'] = filtered_df_1.apply(categorize, axis=1)      
     categories = ['smoker, 24h: True', 'smoker, 24h: False', 'passive smoker, 24h: True', 'passive smoker, 24h: False', 'nonsmoker']
@@ -296,23 +296,23 @@ for idx, substance in enumerate(pah_columns):
         sns.boxplot(ax = axes[row, col],
                     data = filtered_df_1, 
                     x='groups', 
-                    y=substance+'_implog10', 
+                    y=substance+'_impcrtlog10', 
                     color = metabolites_colors[substance], 
                     whis = (5, 95))
 
         # ANOVA with log-transformed values
         anova_results = stats.f_oneway(
-            filtered_df_1[filtered_df_1['groups'] == 'smoker, 24h: True'][substance+'_implog10'],
-            filtered_df_1[filtered_df_1['groups'] == 'smoker, 24h: False'][substance+'_implog10'],
-            filtered_df_1[filtered_df_1['groups'] == 'passive smoker, 24h: True'][substance+'_implog10'],
-            filtered_df_1[filtered_df_1['groups'] == 'passive smoker, 24h: False'][substance+'_implog10'],
-            filtered_df_1[filtered_df_1['groups'] == 'nonsmoker'][substance+'_implog10']
+            filtered_df_1[filtered_df_1['groups'] == 'smoker, 24h: True'][substance+'_impcrtlog10'],
+            filtered_df_1[filtered_df_1['groups'] == 'smoker, 24h: False'][substance+'_impcrtlog10'],
+            filtered_df_1[filtered_df_1['groups'] == 'passive smoker, 24h: True'][substance+'_impcrtlog10'],
+            filtered_df_1[filtered_df_1['groups'] == 'passive smoker, 24h: False'][substance+'_impcrtlog10'],
+            filtered_df_1[filtered_df_1['groups'] == 'nonsmoker'][substance+'_impcrtlog10']
         )
 
         # Dunnett's version of Tukey's test, comparing non-smokers to each infividual category
         control_group = 'nonsmoker'   
-        control_values = filtered_df_1.loc[filtered_df_1['groups'] == control_group][substance+'_implog10'].to_numpy()  
-        noncontrol_ordered_values = [filtered_df_1.loc[filtered_df_1['groups'] == category, substance+'_implog10'].to_numpy()
+        control_values = filtered_df_1.loc[filtered_df_1['groups'] == control_group][substance+'_impcrtlog10'].to_numpy()  
+        noncontrol_ordered_values = [filtered_df_1.loc[filtered_df_1['groups'] == category, substance+'_impcrtlog10'].to_numpy()
                                      for category in categories if category != control_group]
 
         def discard_empty_categories(smoking_categories, noncontrol_values):  # skip the test in case of no data
@@ -344,7 +344,7 @@ for idx, substance in enumerate(pah_columns):
                     significant_pairs.append((group, control_group))
                     significant_pvalues.append(results.pvalue[i])
 
-        annotator = Annotator(ax = axes[row, col], pairs = significant_pairs, data=filtered_df_1, x="groups", y=substance+'_implog10')
+        annotator = Annotator(ax = axes[row, col], pairs = significant_pairs, data=filtered_df_1, x="groups", y=substance+'_impcrtlog10')
         annotator.configure(text_format="star", loc="outside", fontsize=10)
         annotator.set_pvalues(significant_pvalues)
         annotator.annotate()
@@ -365,7 +365,7 @@ for idx, substance in enumerate(pah_columns):
         y_labels = [round(np.power(10, tick), 2) for tick in y_ticks]  # Convert from log to linear and round to 2 decimals
         axes[row, col].set_yticks(y_ticks)  # Keep positions
         axes[row, col].set_yticklabels(y_labels)  # Replace labels with linear equivalents
-        axes[row, col].set_ylabel("Imputed, log10-transformed values")
+        axes[row, col].set_ylabel("CRT-standardized, imputed, log10-transformed values")
     
     # title for empty subplots
     axes[row, col].set_title(substance, pad = 90)
@@ -373,26 +373,26 @@ for idx, substance in enumerate(pah_columns):
 plt.show()
 
 
-# In[15]:
+# In[12]:
 
 
 # intenzita kouřní × koncentrace, hodnoty standardizovány na kreatinin, log. osa y
 
-fig, axes = plt.subplots(4, 4, figsize=(18, 20))
-fig.suptitle('Number of cigarettes a day × compound concentration', fontsize=16, y = 0.99)
+fig, axes = plt.subplots(4, 4, figsize=(18, 18))
+fig.suptitle('Number of cigarettes a day × compound concentration', fontsize=12)
 
 for idx, substance in enumerate(pah_columns):
     row = idx // 4
     col = idx % 4
 
     # scatterplot
-    df_part = df[df.smoking == True][['smoking_cigday', substance+'_implog10']].dropna()
+    df_part = df[df.smoking == True][['smoking_cigday', substance+'_impcrtlog10']].dropna()
     x = df_part['smoking_cigday'] = df_part['smoking_cigday'].astype('float')
-    y = df_part[substance+'_implog10'].astype('float')
+    y = df_part[substance+'_impcrtlog10'].astype('float')
     sns.regplot(ax = axes[row, col], x=x, y=y, scatter=True, fit_reg=True, ci = None, color = metabolites_colors[substance], line_kws={"color": "black"})
 
     # Spearmannuv korelacni koeficient
-    spearman_corr, p_value = stats.spearmanr(df_part['smoking_cigday'], df_part[substance+'_implog10'])
+    spearman_corr, p_value = stats.spearmanr(df_part['smoking_cigday'], df_part[substance+'_impcrtlog10'])
     spearman_corr = round(spearman_corr, 2)
     if p_value < 0.01:  # If p-value is very small
         rounded_p_value = f"{p_value:.2e}"  # Keep in scientific notation
@@ -401,7 +401,7 @@ for idx, substance in enumerate(pah_columns):
 
     axes[row, col].set_title(f'{substance}')
     axes[row, col].set_xlabel(f"Spearman coeff.: {spearman_corr}, P-value: {rounded_p_value}")
-    axes[row, col].set_ylabel("Imputed, log10-transformed values")
+    axes[row, col].set_ylabel("CRT-standardized, imputed, log10-transformed values")
     
 
 plt.tight_layout()

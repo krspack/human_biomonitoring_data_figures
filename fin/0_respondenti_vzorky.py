@@ -11,65 +11,21 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 import seaborn as sns
 import numpy as np
+import pickle
 
-# načtení dat, volba typů proměnných
-df = pd.read_csv('data/data_copy.csv', sep=";", encoding="UTF-8", decimal=',')
-data_types = pd.read_csv('dtypes_csv2.csv', sep = ',', encoding = 'UTF-8')   # data_types = muj výtvor, lze menit
-dtypes_dict = data_types.to_dict(orient = "records")[0]
-for col, dtype in dtypes_dict.items():
-    df[col] = df[col].astype(dtype)
+df = pd.read_pickle('df_incl_smokers.pkl')    
 
-# sledovane latky - vybrane sloupce
-pah_columns = ['oneohnap', 'twoohnap', 'diohnap', 'twohfluo', 'threehfluo', 'ninehfluo', 'onehphe', 
-     'twohphe', 'threehphe', 'fourhphe', 'ninehphe', 'ohpyr', 'ohbap']
-log_columns = [x+'_log' for x in pah_columns]
+with open('pah_columns.pkl', 'rb') as f:  
+    pah_columns = pickle.load(f)
 
-imp_columns = [x+'_imp' for x in pah_columns]
-implog_columns = [x+'_implog' for x in pah_columns]
+with open('parent_to_metabolite.pkl', 'rb') as f:  
+    parent_to_metabolite = pickle.load(f)
 
-impcrt_columns = [x+'_impcrt' for x in pah_columns]
-impcrtlog_columns = [x for x in df.columns if 'impcrtlog' in x]
+with open('metabolites_colors.pkl', 'rb') as f:  
+    metabolites_colors = pickle.load(f)
 
-# CRT: vyhodit chybejici data a vzorky nad a pod limitem (mene nez 10 radek)
-df.dropna(subset=['crt'], axis=0, inplace=True)   # maže 5 řádek
-df = df.assign(crt_g_l = df['crt']/1000000, crt_limity = '')
-df['crt_limity'] = df['crt_g_l'].apply(lambda x: 'pod limitem' if x < 0.05 else ('ok' if 0.05 <= x <= 5 else 'nad limitem'))
-df = df[df['crt_limity'] == 'ok']  # maže 6 řádek
-
-
-# In[2]:
-
-
-metabolites_colors = {
-    "oneohnap": "#1f7cb4",       # 1-hydroxynaphthalene
-    "twoohnap": "#A5CEE2",      # 2-hydroxynaphthalene        # opraven kod
-    "diohnap": "#5BDBC3",       # 1-,2-dihydroxynaphthalene   # chybi, doplneno 
-    "twohfluo": "#ffa700",      # 2-hydroxyfluorene
-    "threehfluo": "#fbf356",    # 3-hydroxyfluorene
-    "ninehfluo": "#FCBF64",     # 9-hydroxyfluorene           # chybi, doplneno  
-    "onehphe": "#6d8b3c",       # 1-hydroxyphenanthrene
-    "twohphe": "#bce96c",       # 2-hydroxyphenanthrene
-    "threehphe": "#6CC92A",     # 3-hydroxyphenanthrene       # chybi, doplneno
-    "fourhphe": "#33a32a",      # 4-hydroxyphenanthrene
-    "ninehphe": "#b5e9b4",      # 9-hydroxyphenanthrene
-    "ohpyr": "#cab2d6",         # 1-hydroxypyrene  
-    "ohbap": "#f07075"          # 3-hydroxybenzo(a)pyrene
-}
-parent_colors = {
-    'PYR': '#e9843f', 
-    'FLU': '#f9c013',
-    'PHE': '#abcf93', 
-    'NAP': '#659fd3',
-    'BAP': '#E21A3F'   # opraven kod
-}
-
-parent_to_metabolite = {
-    'PYR': ['ohpyr'], 
-    'FLU': ['twohfluo', 'threehfluo', 'ninehfluo'],
-    'PHE': ['onehphe', 'twohphe', 'threehphe', 'fourhphe', 'ninehphe'],
-    'NAP': ['oneohnap', 'twoohnap', 'diohnap'], 
-    'BAP': ['ohbap']
-}
+with open('parents_colors.pkl', 'rb') as f:  
+    parents_colors = pickle.load(f)
 
 def get_parent(compound):
     for parent, metabolites in parent_to_metabolite.items():
@@ -79,28 +35,7 @@ def get_parent(compound):
     return ''
 
 
-# In[3]:
-
-
-# doplnit sloupec heating_season
-heating_season = {
-"CH": [10,11,12,1,2,3,4],
-"CZ": [10,11,12,1,2,3,4],
-"DE": [10,11,12,1,2,3,4],
-"DK": [9,10,11,12,1,2,3,4],
-"FR": [10,11,12,1,2,3,4],
-"HR": [11,12,1,2,3],
-"IS": [9,10,11,12,1,2,3,4,5],
-"LU": [10,11,12,1,2,3,4],
-"PL": [9,10,11,12,1,2,3,4],
-"PT": [11,12,1,2,3]
-}
-
-df['heating_season'] = df.apply(
-    lambda row: int(row['samplingmonth']) in heating_season[row['country']], axis=1)
-
-
-# In[4]:
+# In[2]:
 
 
 # velikost datasetu, chybejici hodnoty:
@@ -114,7 +49,7 @@ for column in df:
     print(column, df[column].isna().sum())
 
 
-# In[32]:
+# In[3]:
 
 
 # počet vzorků vč. LOD, LOQ, pohled po jednotlivých látkách: 
@@ -148,13 +83,12 @@ for index, substance in enumerate(pah_columns):
 handles, labels = ax[2, 2].get_legend_handles_labels()  
 labels_dict = {'-1.0': 'x < LOD', '-2.0': 'LOD <= x < LOQ', '-3.0': 'LOD unknown, x < LOQ' , 'ok': 'OK'}
 labels = [value for key, value in labels_dict.items()]
-print(handles)
 fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1, 1.15), ncol=1, title = 'Detection categories:', fontsize = 14, title_fontsize = 14)
 plt.tight_layout()
 plt.show()
 
 
-# In[34]:
+# In[4]:
 
 
 # totéž co výše, ale pohled po jednotlivých státech: počty vzorků po jednotlivých státech, vč. LOD a LOQ
@@ -198,7 +132,7 @@ for index, country in enumerate(sorted(df['country'].unique())):
         ax[row, col].axvline(x=pos, color='gray', linestyle='--', linewidth=1)
     for label in ax[row, col].get_xticklabels():
         text = label.get_text().split('_')[0]  # Example extraction logic
-        color = parent_colors.get(text, 'black')  # Default to black if no color specified
+        color = parents_colors.get(text, 'black')  # Default to black if no color specified
         label.set_color(color)
 
 fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1, 1.15), ncol=1, title = 'Detection categories:', fontsize = 14, title_fontsize = 14)
@@ -207,7 +141,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[7]:
+# In[5]:
 
 
 # poměr počtu respondentů, kteří mají data o PAHs standradizovaná na creatinin (crt) a na hustotu moči (sg)
@@ -235,7 +169,7 @@ for value in crt_columns_lengths.values():
 df.dropna(subset=['crt'], axis=0, inplace=True)  
 
 
-# In[8]:
+# In[6]:
 
 
 # 1. pocet vzorku v jednotlivych letech
@@ -259,7 +193,7 @@ ax.set_xticklabels([f"{int(year)}\n(n = {grouped.get(year)})" for year in years]
 plt.show()
 
 
-# In[9]:
+# In[7]:
 
 
 # 2.stát × rok vzorkování
@@ -276,7 +210,7 @@ plt.show()
 
 
 
-# In[10]:
+# In[8]:
 
 
 # 3. sezóna
@@ -295,7 +229,7 @@ print(season_count)
 print('')
 
 
-# In[11]:
+# In[9]:
 
 
 # 4. stát × měsíc
@@ -311,7 +245,7 @@ plt.xlabel('Month')
 plt.show()
 
 
-# In[12]:
+# In[10]:
 
 
 # 5. matrice
@@ -330,7 +264,7 @@ print(matrix_count)
 print('')
 
 
-# In[13]:
+# In[11]:
 
 
 # 6. stát × matrice
@@ -347,7 +281,7 @@ plt.show()
 print('UM = First morning urine, US = Urine-spot, UD = Urine-24h')
 
 
-# In[14]:
+# In[12]:
 
 
 # 7. pohlaví
@@ -371,7 +305,7 @@ ax.set_xticklabels(xt)
 plt.show()
 
 
-# In[15]:
+# In[13]:
 
 
 # pohlaví x země
@@ -415,7 +349,7 @@ print('mean absolute difference: ', int(mean_difference_abs), '%')
 
 
 
-# In[16]:
+# In[14]:
 
 
 # 8. věk
@@ -432,7 +366,7 @@ print(df['ageyears'].describe())
 print('')
 
 
-# In[17]:
+# In[15]:
 
 
 # 9. věk × stát
@@ -449,7 +383,7 @@ age_country = df.groupby('country', observed = False)['ageyears'].describe()
 print(age_country)
 
 
-# In[18]:
+# In[16]:
 
 
 # Jak přesné je měření v jednotlivých státech? Přehled hodnot LOD, LOQ.

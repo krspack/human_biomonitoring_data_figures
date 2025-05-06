@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Sex + PAHs (no CRT-standardization)
+# ## Sex + PAHs (CRT-standardized values)
 
 # In[1]:
 
@@ -37,7 +37,7 @@ def get_parent(compound):
     return ''
 
 
-# In[3]:
+# In[2]:
 
 
 # pohlaví × koncentrace pro všechny PAHy 
@@ -45,25 +45,24 @@ def get_parent(compound):
 fig, axes = plt.subplots(4, 4, figsize=(20, 18))
 fig.suptitle('Metabolites vs. sex. Smokers excluded', fontsize=16, y = 0.99)
 
-
 for idx, substance in enumerate(pah_columns):
 
     row = idx // 4
     col = idx % 4
 
     # n
-    grouped = df.groupby('sex', observed = False)[[substance + '_imp', substance + '_implog10']]
+    grouped = df.groupby('sex', observed = False)[[substance + '_impcrt', substance + '_impcrtlog10']]
     grouped_dropna = grouped.apply(lambda x: x.dropna()).reset_index()
     counts = grouped_dropna.groupby('sex', observed = False).size()
 
     # t-test
-    f_values = grouped_dropna[grouped_dropna['sex'] == 'F'][substance+'_implog10']
-    m_values = grouped_dropna[grouped_dropna['sex'] == 'M'][substance+'_implog10']
+    f_values = grouped_dropna[grouped_dropna['sex'] == 'F'][substance+'_impcrtlog10']
+    m_values = grouped_dropna[grouped_dropna['sex'] == 'M'][substance+'_impcrtlog10']
     t_stat, p_value = ttest_ind(f_values, m_values)
     p_value = np.format_float_scientific(p_value, precision=2)
     
     # Boxplot
-    y = df[substance + '_imp'].dropna() 
+    y = df[substance + '_impcrt'].dropna() 
     sns.boxplot(x = df['sex'], y = y, color = metabolites_colors.get(substance), ax=axes[row, col], whis = (5, 95))
 
     # x-axis
@@ -76,7 +75,7 @@ for idx, substance in enumerate(pah_columns):
     axes[row, col].set_yscale('log') 
     axes[row, col].yaxis.set_major_locator(ticker.LogLocator(base=10, numticks=10))
     axes[row, col].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x:.3f}" if x < 1 else f"{int(x)}"))
-    axes[row, col].set_ylabel("Imputed, log10-transfrmed values")
+    axes[row, col].set_ylabel("CRT-standardized, imputed, log10-transfrmed values")
 
     # title
     axes[row, col].set_title(f"{substance}")

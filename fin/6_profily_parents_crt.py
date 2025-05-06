@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Profily - parent compounds (no CRT-standardization)
+# ## Profily - parent compounds (CRT-standardized values)
 
 # In[1]:
 
@@ -39,7 +39,7 @@ def get_parent(compound):
                 return parent
     return ''
 
-parent_imp_columns = [f'{p}_imp' for p in parent_to_metabolite.keys()]
+parent_impcrt_columns = [f'{p}_impcrt' for p in parent_to_metabolite.keys()]
 
 
 # In[2]:
@@ -47,11 +47,11 @@ parent_imp_columns = [f'{p}_imp' for p in parent_to_metabolite.keys()]
 
 # profily zemi
 
-df_medians = df.groupby(['country'], observed=False)[parent_imp_columns].median()
+df_medians = df.groupby(['country'], observed=False)[parent_impcrt_columns].median()
 df['country'] = df['country'].astype(str)  # aby bylo mozne ho seradit abecedne pro ucely grafu
 df_medians.sort_index(inplace = True)
 
-imp_palette = {key+"_imp": value for key, value in parents_colors.items()}
+impcrt_palette = {key+"_impcrt": value for key, value in parents_colors.items()}
 
 def plot_profiles(dataframe, title, ylabel):
     fig = plt.figure(figsize = [16, 6])
@@ -60,9 +60,9 @@ def plot_profiles(dataframe, title, ylabel):
     countries = sorted(dataframe.index)
     
     bottom_values = np.zeros(len(countries)) 
-    for i, parent_compound in enumerate(parent_imp_columns):
+    for i, parent_compound in enumerate(parent_impcrt_columns):
         values = dataframe.loc[countries, parent_compound]
-        ax.bar(countries, values, bottom=bottom_values, label=parent_compound.replace('_imp', ''), color=imp_palette[parent_compound])
+        ax.bar(countries, values, bottom=bottom_values, label=parent_compound.replace('_impcrt', ''), color=impcrt_palette[parent_compound])
         bottom_values += values
     
     # Set x-ticks and labels
@@ -82,7 +82,7 @@ def plot_profiles(dataframe, title, ylabel):
     return
 print(plot_profiles(df_medians,
                     'Country profiles of parent compounds. Smokers excluded',
-                   'Median concentrations, linear scale' ))
+                   'Median concentrations of CRT-standardized values, linear scale' ))
 
 
 # In[3]:
@@ -103,24 +103,24 @@ print(plot_profiles(df_medians_percentage,
 
 # Hotelliguv test
 
-# vybrat sloupce imp
+# vybrat sloupce impcrt
 df_hotelling = df.copy()
-df_hotelling = df_hotelling[['country', *parent_imp_columns]]
+df_hotelling = df_hotelling[['country', *parent_impcrt_columns]]
 
 # prevest hodnoty na procenta
-row_sums = df_hotelling[parent_imp_columns].sum(axis=1)
-df_hotelling[parent_imp_columns] = df_hotelling[parent_imp_columns].div(row_sums, axis=0) * 100
+row_sums = df_hotelling[parent_impcrt_columns].sum(axis=1)
+df_hotelling[parent_impcrt_columns] = df_hotelling[parent_impcrt_columns].div(row_sums, axis=0) * 100
 
 # vydelit vsechny hodnoty hodnotou prvniho metabolitu
-for column in parent_imp_columns:
-    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_imp_columns[0]]
+for column in parent_impcrt_columns:
+    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_impcrt_columns[0]]
     
 # zlogaritmovat vsechny hodnoty pro normalni rozdeleni
-for column in parent_imp_columns:
+for column in parent_impcrt_columns:
     df_hotelling[column] = np.log(df_hotelling[column])
 
 # vyhodit z dat sloupec, kterym se delilo
-columns_without_first = parent_imp_columns[1:]
+columns_without_first = parent_impcrt_columns[1:]
 
 # Hotellinguv test 
 countries = sorted(list(df.country.unique()))
@@ -153,14 +153,14 @@ for country_1 in countries:
 print(p_values_df)
 
 
-# In[5]:
+# In[6]:
 
 
 # # profily zemi pro topnou a netopnou sezonu, test a graf
 
 df['heating_season'] = pd.Categorical(df['heating_season'],categories=[False, True])
 
-df_heating = df.groupby(['country', 'heating_season'], observed=False)[parent_imp_columns].median()
+df_heating = df.groupby(['country', 'heating_season'], observed=False)[parent_impcrt_columns].median()
 df_heating.index = df_heating.index.map(lambda x: x[0] + " " + str(x[1]), na_action = 'ignore')  # vstupem funkce map() je funkce. Zde lambda ze dvou sloupcu (stat a season) vyrobi jeden
 
 print('Parent compounds v topné vs. netopné sezóně, absolutní hodnoty')
@@ -168,25 +168,25 @@ print('===============================================================')
 print(df_heating)
 print('')
 
-# vybrat sloupce imp
+# vybrat sloupce impcrt
 df_hotelling = df.copy()
 df_hotelling = df_hotelling[~df_hotelling['country'].isin(['DE', 'HR', 'PL'])]  # vyhodit se srovnani staty, ktere nemerily v obou sezonach
-df_hotelling = df_hotelling[['country', 'heating_season', *parent_imp_columns]]
+df_hotelling = df_hotelling[['country', 'heating_season', *parent_impcrt_columns]]
 
 # prevest hodnoty na procenta
-row_sums = df_hotelling[parent_imp_columns].sum(axis=1)
-df_hotelling[parent_imp_columns] = df_hotelling[parent_imp_columns].div(row_sums, axis=0) * 100
+row_sums = df_hotelling[parent_impcrt_columns].sum(axis=1)
+df_hotelling[parent_impcrt_columns] = df_hotelling[parent_impcrt_columns].div(row_sums, axis=0) * 100
 
 # vydelit vsechny hodnoty hodnotou posledniho metabolitu
-for column in parent_imp_columns:
-    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_imp_columns[-1]]
+for column in parent_impcrt_columns:
+    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_impcrt_columns[-1]]
     
 # zlogaritmovat vsechny hodnoty pro normalni rozdeleni
-for column in parent_imp_columns:
+for column in parent_impcrt_columns:
     df_hotelling[column] = np.log(df_hotelling[column])
 
 # vyhodit z dat prvni sloupec, kterym se delilo
-columns_without_last = parent_imp_columns[:-1]
+columns_without_last = parent_impcrt_columns[:-1]
 
 # Hotellinguv test
 countries = sorted(list(df_hotelling.country.unique()))
@@ -228,9 +228,9 @@ def plot_profiles(dataframe, title, ylabel):
     country_heating = sorted(dataframe.index)
     bottom_values = np.zeros(len(country_heating)) 
     
-    for i, parent_compound in enumerate(parent_imp_columns):
+    for i, parent_compound in enumerate(parent_impcrt_columns):
         values = dataframe.loc[country_heating, parent_compound]       
-        ax.bar(x = country_heating, height = values, bottom=bottom_values, label=parent_compound.replace('_imp', ''), color=imp_palette[parent_compound])
+        ax.bar(x = country_heating, height = values, bottom=bottom_values, label=parent_compound.replace('_impcrt', ''), color=impcrt_palette[parent_compound])
         bottom_values += values
     
     # osy, popisky, ticks
@@ -250,14 +250,14 @@ def plot_profiles(dataframe, title, ylabel):
     return ''
 print(plot_profiles(df_heating,
                     'Country profiles of parent compounds, heating and non-heating season compared. Smokers excluded',
-                   'Median concentrations, linear scale' ))
+                   'Median concentrations of CRT-standardized values, linear scale' ))
 print('P-values:')
 print('=========')
 for k, v in p_values_dict.items():
     print(f'{k}: {v}')
 
 
-# In[6]:
+# In[7]:
 
 
 # Profily zemí II, procenta z lineárních hodnot
@@ -273,17 +273,17 @@ print('')
 
 print(plot_profiles(df_heating_percentage,
                     'Country profiles of parent compounds - percentage, heating and non-heating season compared. Smokers excluded',
-                   'Percentage of total, imputed values (country medians)' ))
+                   'Percentage of total, imputed, CRT-starndardized values (country medians)' ))
 
 
-# In[7]:
+# In[8]:
 
 
 # profily zemi pro degurba
 
 df['degurba'] = df['degurba'].cat.rename_categories({1.0: 'city', 2.0: 'town/suburb', 3.0: 'rural'})
 df['degurba'] = df['degurba'].cat.set_categories(['city', 'town/suburb', 'rural'], ordered = True)
-df_degurba = df.groupby(['country', 'degurba'], observed=False)[parent_imp_columns].median()
+df_degurba = df.groupby(['country', 'degurba'], observed=False)[parent_impcrt_columns].median()
 df_degurba.index = df_degurba.index.map(lambda x: f"{x[0]} {str(x[1])}")
 
 print('Parent compounds v jednotlivých typech zástavby, absolutní hodnoty')
@@ -298,9 +298,9 @@ def plot_profiles(dataframe, title, ylabel):
     country_degurba = dataframe.index
     bottom_values = np.zeros(len(country_degurba)) 
     
-    for i, parent_compound in enumerate(parent_imp_columns):
+    for i, parent_compound in enumerate(parent_impcrt_columns):
         values = dataframe.loc[country_degurba, parent_compound]       
-        ax.bar(country_degurba, values, bottom=bottom_values, label=parent_compound.replace('_imp', ''), color=imp_palette[parent_compound])
+        ax.bar(country_degurba, values, bottom=bottom_values, label=parent_compound.replace('_impcrt', ''), color=impcrt_palette[parent_compound])
         bottom_values += values
     
     # osy, popisky, ticks
@@ -321,34 +321,34 @@ def plot_profiles(dataframe, title, ylabel):
     return
 print(plot_profiles(df_degurba,
                     'Country profiles of parent compounds, degrees of urbanization compared. Smokers excluded',
-                   'Median concentrations, linear scale' ))
+                   'Median concentrations of CRT-standardized values, linear scale' ))
 
 
-# In[8]:
+# In[9]:
 
 
 # Hotelliguv test pro rozliseni degurba u kazdeho statu
 
-# vybrat sloupce imp
+# vybrat sloupce impcrt
 df_hotelling = df.copy()
 df_hotelling = df_hotelling[~df_hotelling['country'].isin(['DE', 'PL', 'CH'])]  # vyhodit se srovnani staty, ktere nemerily ve vsech typech zastavby
-df_hotelling = df_hotelling[['country', 'degurba', *parent_imp_columns]]
+df_hotelling = df_hotelling[['country', 'degurba', *parent_impcrt_columns]]
 
 # prevest hodnoty na procenta
-row_sums = df_hotelling[parent_imp_columns].sum(axis=1)
+row_sums = df_hotelling[parent_impcrt_columns].sum(axis=1)
 assert len(row_sums) == df_hotelling.shape[0]
-df_hotelling[parent_imp_columns] = df_hotelling[parent_imp_columns].div(row_sums, axis=0) * 100
+df_hotelling[parent_impcrt_columns] = df_hotelling[parent_impcrt_columns].div(row_sums, axis=0) * 100
 
 # vydelit vsechny hodnoty hodnotou jednoho sloupce
-for column in parent_imp_columns:
-    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_imp_columns[0]]
+for column in parent_impcrt_columns:
+    df_hotelling[column] = df_hotelling[column] / df_hotelling[parent_impcrt_columns[0]]
     
 # zlogaritmovat vsechny hodnoty pro normalni rozdeleni
-for column in parent_imp_columns:
+for column in parent_impcrt_columns:
     df_hotelling[column] = np.log(df_hotelling[column])
 
 # vyhodit z dat ten sloupec, kterym se delilo
-columns_without_one = parent_imp_columns[1:]
+columns_without_one = parent_impcrt_columns[1:]
 
 # Hotellinguv test
 countries = sorted(list(df_hotelling.country.unique()))
@@ -406,5 +406,12 @@ print(df_degurba_percentage)
 print('')
 
 print(plot_profiles(df_degurba_percentage,
-                    'Country profiles of parent compounds, degrees of urbanization compared. Smokers excluded', 'Percentage' ))
+                    'Country profiles of parent compounds, degrees of urbanization compared. Smokers excluded',
+                   'Median concentrations of CRT-standardized values, percentage' ))
+
+
+# In[ ]:
+
+
+
 
